@@ -380,8 +380,7 @@ fn nokhwa_main() {
                 IndexKind::Index(i) => CameraIndex::Index(*i),
             };
 
-            let requested = requested.clone().map(|x| x.make_requested())
-                .flatten()
+            let requested = requested.clone().and_then(|x| x.make_requested())
                 .expect("Expected AbsoluteHighestResolution, AbsoluteHighestFrameRate, HighestResolution, HighestFrameRate, Exact, Closest, or None");
 
             let mut camera = Camera::new(index, requested).unwrap();

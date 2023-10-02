@@ -84,6 +84,7 @@ impl Camera {
     /// Allows creation of a [`Camera`] with a custom backend. This is useful if you are creating e.g. a custom module.
     ///
     /// You **must** have set a format beforehand.
+    #[must_use]
     pub fn with_custom(
         idx: CameraIndex,
         api: ApiBackend,

@@ -16,7 +16,7 @@ use std::{
 /// - `Exact`: Pick the exact [`CameraFormat`] provided.
 /// - `Closest`: Pick the closest [`CameraFormat`] provided in order of [`FrameFormat`], [`Resolution`], and FPS. Note that if the [`FrameFormat`] does not exist, this will fail to resolve.
 /// - `None`: Pick a random [`CameraFormat`]
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Hash, Ord, PartialOrd, Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum RequestedFormatType {
     AbsoluteHighestResolution,
@@ -25,13 +25,8 @@ pub enum RequestedFormatType {
     HighestFrameRate(u32),
     Exact(CameraFormat),
     Closest(CameraFormat),
+    #[default]
     None,
-}
-
-impl Default for RequestedFormatType {
-    fn default() -> Self {
-        RequestedFormatType::None
-    }
 }
 
 impl Display for RequestedFormatType {
@@ -1501,9 +1496,9 @@ pub fn mjpeg_to_rgb(data: &[u8], rgba: bool) -> Result<Vec<u8>, NokhwaError> {
         }
     };
 
-    let scanlines_res: Option<Vec<u8>> = jpeg_decompress.read_scanlines_flat();
+    let scanlines_res: Option<Vec<u8>> = jpeg_decompress.read_scanlines().ok();
     // assert!(jpeg_decompress.finish_decompress());
-    if !jpeg_decompress.finish_decompress() {
+    if jpeg_decompress.finish().is_err() {
         return Err(NokhwaError::ProcessFrameError {
             src: FrameFormat::MJPEG,
             destination: "RGB888".to_string(),
@@ -1573,9 +1568,9 @@ pub fn buf_mjpeg_to_rgb(data: &[u8], dest: &mut [u8], rgba: bool) -> Result<(), 
         });
     }
 
-    jpeg_decompress.read_scanlines_flat_into(dest);
+    jpeg_decompress.read_scanlines_into(dest).ok();
     // assert!(jpeg_decompress.finish_decompress());
-    if !jpeg_decompress.finish_decompress() {
+    if jpeg_decompress.finish().is_err() {
         return Err(NokhwaError::ProcessFrameError {
             src: FrameFormat::MJPEG,
             destination: "RGB888".to_string(),
@@ -1594,6 +1589,7 @@ pub fn buf_mjpeg_to_rgb(_data: &[u8], _dest: &mut [u8], _rgba: bool) -> Result<(
 
 /// Returns the predicted size of the destination YUYV422 buffer.
 #[inline]
+#[must_use]
 pub fn yuyv422_predicted_size(size: usize, rgba: bool) -> usize {
     let pixel_size = if rgba { 4 } else { 3 };
     // yuyv yields 2 3-byte pixels per yuyv chunk
@@ -1804,8 +1800,8 @@ pub fn buf_nv12_to_rgb(
             let base_index = (hidx * width_usize * rgba_size) + cidx * rgba_size * 2;
 
             if rgba {
-                let px0 = yuyv444_to_rgba(y0 as i32, u as i32, v as i32);
-                let px1 = yuyv444_to_rgba(y1 as i32, u as i32, v as i32);
+                let px0 = yuyv444_to_rgba(y0.into(), u.into(), v.into());
+                let px1 = yuyv444_to_rgba(y1.into(), u.into(), v.into());
 
                 out[base_index] = px0[0];
                 out[base_index + 1] = px0[1];
@@ -1816,8 +1812,8 @@ pub fn buf_nv12_to_rgb(
                 out[base_index + 6] = px1[2];
                 out[base_index + 7] = px1[3];
             } else {
-                let px0 = yuyv444_to_rgb(y0 as i32, u as i32, v as i32);
-                let px1 = yuyv444_to_rgb(y1 as i32, u as i32, v as i32);
+                let px0 = yuyv444_to_rgb(y0.into(), u.into(), v.into());
+                let px1 = yuyv444_to_rgb(y1.into(), u.into(), v.into());
 
                 out[base_index] = px0[0];
                 out[base_index + 1] = px0[1];

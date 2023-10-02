@@ -87,10 +87,10 @@ impl CallbackCamera {
             frame_callback: Arc::new(Mutex::new(Box::new(callback))),
             last_frame_captured: Arc::new(Mutex::new(Buffer::new(
                 Resolution::new(0, 0),
-                &vec![],
+                &[],
                 FrameFormat::GRAY,
             ))),
-            die_bool: Arc::new(Default::default()),
+            die_bool: Arc::new(AtomicBool::default()),
             current_camera,
             handle: Arc::new(Mutex::new(None)),
         })
@@ -106,18 +106,19 @@ impl CallbackCamera {
             frame_callback: Arc::new(Mutex::new(Box::new(callback))),
             last_frame_captured: Arc::new(Mutex::new(Buffer::new(
                 Resolution::new(0, 0),
-                &vec![],
+                &[],
                 FrameFormat::GRAY,
             ))),
-            die_bool: Arc::new(Default::default()),
+            die_bool: Arc::new(AtomicBool::default()),
             current_camera,
             handle: Arc::new(Mutex::new(None)),
         }
     }
 
     /// Gets the current Camera's index.
+    #[must_use]
     pub fn index(&self) -> &CameraIndex {
-        &self.current_camera.index()
+        self.current_camera.index()
     }
 
     /// Sets the current Camera's index. Note that this re-initializes the camera.
@@ -160,6 +161,7 @@ impl CallbackCamera {
     }
 
     /// Gets the camera information such as Name and Index as a [`CameraInfo`].
+    #[must_use]
     pub fn info(&self) -> &CameraInfo {
         &self.current_camera
     }
@@ -464,7 +466,7 @@ impl CallbackCamera {
             let last_frame = self.last_frame_captured.clone();
             let callback = self.frame_callback.clone();
             let handle = std::thread::spawn(move || {
-                camera_frame_thread_loop(camera_clone, callback, last_frame, die_bool_clone)
+                camera_frame_thread_loop(&camera_clone, &callback, &last_frame, &die_bool_clone);
             });
             *handle_lock = Some(handle);
             Ok(())
@@ -546,10 +548,10 @@ impl Drop for CallbackCamera {
 }
 
 fn camera_frame_thread_loop(
-    camera: AtomicLock<Camera>,
-    frame_callback: HeldCallbackType,
-    last_frame_captured: AtomicLock<Buffer>,
-    die_bool: Arc<AtomicBool>,
+    camera: &AtomicLock<Camera>,
+    frame_callback: &HeldCallbackType,
+    last_frame_captured: &AtomicLock<Buffer>,
+    die_bool: &Arc<AtomicBool>,
 ) {
     loop {
         if let Ok(mut camera) = camera.lock() {

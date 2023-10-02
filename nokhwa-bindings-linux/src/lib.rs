@@ -626,7 +626,7 @@ mod internal {
                             | Type::IntegerMenu,
                             Value::Integer(current),
                         ) => ControlValueDescription::IntegerRange {
-                            min: desc.minimum as i64,
+                            min: desc.minimum,
                             max: desc.maximum,
                             value: current,
                             step: desc.step as i64,
